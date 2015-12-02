@@ -73,6 +73,7 @@ class Config implements ConfigInterface
             'sharedTypes'                    => false,
             'constructorParamsDefaultToNull' => false,
             'soapClientClass'               => '\SoapClient',
+            'reactSoapClientClass'          => '\Clue\React\Soap\Client',
             'soapClientOptions'             => array(),
             'proxy'                         => false
         ));
