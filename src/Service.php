@@ -149,7 +149,10 @@ class Service implements ClassGenerator
 
         // Create the class object
         $comment = new PhpDocComment($this->description);
-        $extends = isset($this->config->get('reactSoapClientClass')) ? $this->config->get('reactSoapClientClass') : $this->config->get('soapClientClass');
+        $extends = $this->config->get('reactSoapClientClass');
+        if (empty($extends)) {
+            $extends = $this->config->get('soapClientClass');
+        }
         $this->class = new PhpClass($name, false, $extends, $comment);
 
         // Create the constructor
