@@ -10,6 +10,7 @@ use Wsdl2PhpGenerator\PhpSource\PhpDocComment;
 use Wsdl2PhpGenerator\PhpSource\PhpDocElementFactory;
 use Wsdl2PhpGenerator\PhpSource\PhpFunction;
 use Wsdl2PhpGenerator\PhpSource\PhpVariable;
+use Wsdl2PhpGenerator\PhpSource\PhpConst;
 
 /**
  * Service represents the service in the wsdl
@@ -156,9 +157,10 @@ class Service implements ClassGenerator
         $this->class = new PhpClass($name, false, $extends, $comment);
 
         // Create the constructor
-        $comment = new PhpDocComment();
-        $comment->addParam(PhpDocElementFactory::getParam('array', 'options', 'A array of config values'));
+        $comment = new PhpDocComment('Constructor which merges options from generator with runtime options.');
         $comment->addParam(PhpDocElementFactory::getParam('string', 'wsdl', 'The wsdl file to use'));
+        $comment->addParam(PhpDocElementFactory::getParam('\Clue\React\Buzz\Browser', 'browser', 'The browser instance to communicate through'));
+        $comment->addParam(PhpDocElementFactory::getParam('array', 'options', 'An array with SoapClient configuration values'));
 
         $source = '
     foreach (self::$classmap as $key => $value) {
@@ -166,13 +168,18 @@ class Service implements ClassGenerator
             $options[\'classmap\'][$key] = $value;
         }
     }' . PHP_EOL;
-        $source .= '    $options = array_merge(' . var_export($this->config->get('soapClientOptions'), true) . ', $options);' . PHP_EOL;
-        $source .= '    parent::__construct($wsdl, $options);' . PHP_EOL;
+        $source .= '    $soapOptions = ' . str_replace('  ', '        ', var_export($this->config->get('soapClientOptions'), true)) . ';' . PHP_EOL;
+        $source .= '    $options = array_merge($soapOptions, $options);' . PHP_EOL;
+        $source .= '    parent::__construct($wsdl, $browser, $options);' . PHP_EOL;
 
-        $function = new PhpFunction('public', '__construct', 'array $options = array(), $wsdl = \'' . $this->config->get('inputFile') . '\'', $source, $comment);
+        $function = new PhpFunction('public', '__construct', '$wsdl, \Clue\React\Buzz\Browser $browser, array $options = array()', $source, $comment);
 
         // Add the constructor
         $this->class->addFunction($function);
+
+        $comment = new PhpDocComment('Name of WSDL file used by the generator');
+        //$const = new PhpConst('WSDL_FILE', $this->config->get('inputFile'), $comment);
+        $this->class->addConstant($this->config->get('inputFile'), 'WSDL_FILE');
 
         // Generate the classmap
         $name = 'classmap';
@@ -185,7 +192,7 @@ class Service implements ClassGenerator
                 $init[$type->getIdentifier()] = $this->config->get('namespaceName') . "\\" . $type->getPhpIdentifier();
             }
         }
-        $var = new PhpVariable('private static', $name, var_export($init, true), $comment);
+        $var = new PhpVariable('private static', $name, str_replace('  ', '    ', var_export($init, true)), $comment);
 
         // Add the classmap variable
         $this->class->addVariable($var);
